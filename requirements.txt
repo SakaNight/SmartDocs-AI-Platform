@@ -2,4 +2,13 @@ fastapi
 uvicorn
 pydantic
 python-jose
-passlib[bcrypt] 
+passlib[bcrypt]
+langchain
+langchain-community
+tiktoken
+pypdf
+sentence-transformers
+faiss-cpu
+python-dotenv
+sqlalchemy
+psycopg2-binary 
