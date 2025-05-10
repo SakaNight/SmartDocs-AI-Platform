@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.services.user_service import create_user, authenticate_user, get_user_by_username
 from app.core.security import create_access_token
+from app.core.deps import get_current_user
 
 router = APIRouter()
 
@@ -35,4 +36,17 @@ def login(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_access_token({"sub": user.username, "role": user.role})
-    return {"access_token": token, "token_type": "bearer"} 
+    return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/me")
+def get_me(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = get_user_by_username(db, user["sub"])
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "id": db_user.id,
+        "username": db_user.username,
+        "email": db_user.email,
+        "role": db_user.role,
+        "created_at": db_user.created_at
+    } 
