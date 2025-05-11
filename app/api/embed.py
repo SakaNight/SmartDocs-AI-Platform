@@ -3,6 +3,8 @@ from app.services.splitter import split_sentences
 from app.services.embedding import embed_texts
 from app.services.faiss_index import FaissService
 from app.services.pdf_utils import extract_text_from_pdf
+from app.models.document import Document
+from app.db.database import SessionLocal
 import json
 import os
 import io
@@ -28,17 +30,28 @@ async def embed_doc(
     text: str = Body(None, embed=True),
     file: UploadFile = File(None)
 ):
-    if file and file.filename.lower().endswith(".pdf"):
-        pdf_bytes = await file.read()
-        pdf_text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
-        if not pdf_text.strip():
-            raise HTTPException(status_code=400, detail="No text extracted from PDF.")
-        chunks = split_sentences(pdf_text)
-    elif text:
-        chunks = split_sentences(text)
-    else:
-        raise HTTPException(status_code=400, detail="No input text or PDF file provided.")
-    vectors = embed_texts(chunks)
-    faiss_service.add(vectors)
-    append_chunks(chunks)
-    return {"chunks": chunks, "vectors": vectors} 
+    db = SessionLocal()
+    try:
+        if file and file.filename.lower().endswith(".pdf"):
+            pdf_bytes = await file.read()
+            pdf_text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
+            if not pdf_text.strip():
+                raise HTTPException(status_code=400, detail="No text extracted from PDF.")
+            chunks = split_sentences(pdf_text)
+            filename = file.filename
+        elif text:
+            chunks = split_sentences(text)
+            filename = "text_input.txt"
+        else:
+            raise HTTPException(status_code=400, detail="No input text or PDF file provided.")
+        vectors = embed_texts(chunks)
+        faiss_service.add(vectors)
+        append_chunks(chunks)
+        # 写入文档元数据
+        doc = Document(filename=filename, chunk_count=len(chunks), status="embedded")
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+        return {"chunks": chunks, "vectors": vectors, "doc_id": doc.id}
+    finally:
+        db.close() 

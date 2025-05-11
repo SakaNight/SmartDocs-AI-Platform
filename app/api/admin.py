@@ -6,6 +6,7 @@ from app.models.api_log import APILog
 from app.models.user import User
 from app.services.user_service import create_user, get_user_by_username
 from datetime import datetime, timedelta
+from app.models.document import Document
 
 def get_db():
     db = SessionLocal()
@@ -113,4 +114,47 @@ def reset_password_admin(user_id: int, new_password: str = Body(...), db: Sessio
     from app.core.security import hash_password
     u.password_hash = hash_password(new_password)
     db.commit()
-    return {"msg": "Password reset"} 
+    return {"msg": "Password reset"}
+
+@router.get("/docs")
+def list_docs(skip: int = 0, limit: int = 20, db: Session = Depends(get_db), user=Depends(require_role("admin"))):
+    docs = db.query(Document).order_by(Document.id.desc()).offset(skip).limit(limit).all()
+    return [
+        {
+            "id": d.id,
+            "filename": d.filename,
+            "upload_time": d.upload_time,
+            "chunk_count": d.chunk_count,
+            "status": d.status
+        } for d in docs
+    ]
+
+@router.delete("/docs/{doc_id}")
+def delete_doc(doc_id: int, db: Session = Depends(get_db), user=Depends(require_role("admin"))):
+    d = db.query(Document).filter(Document.id == doc_id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Document not found")
+    db.delete(d)
+    db.commit()
+    return {"msg": "Document deleted"}
+
+@router.get("/docs/{doc_id}/chunks")
+def get_doc_chunks(doc_id: int, db: Session = Depends(get_db), user=Depends(require_role("admin"))):
+    d = db.query(Document).filter(Document.id == doc_id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Document not found")
+    # 这里假设chunks信息存储在chunks.json，按顺序分配给文档
+    import json, os
+    CHUNKS_PATH = "chunks.json"
+    if not os.path.exists(CHUNKS_PATH):
+        return {"chunks": []}
+    with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
+        all_chunks = json.load(f)
+    # 简单实现：假设每个文档的chunks是连续分配的
+    start = 0
+    for doc in db.query(Document).order_by(Document.id):
+        if doc.id == doc_id:
+            end = start + doc.chunk_count
+            return {"chunks": all_chunks[start:end]}
+        start += doc.chunk_count
+    return {"chunks": []} 
