@@ -5,6 +5,7 @@ import Stats from './pages/Stats';
 import Logs from './pages/Logs';
 import Users from './pages/Users';
 import Documents from './pages/Documents';
+import Playground from './pages/Playground';
 import './App.css';
 
 const App: React.FC = () => (
@@ -14,7 +15,8 @@ const App: React.FC = () => (
       <Link to="/stats" style={{ marginRight: 24 }}>Stats</Link>
       <Link to="/logs" style={{ marginRight: 24 }}>Logs</Link>
       <Link to="/users" style={{ marginRight: 24 }}>Users</Link>
-      <Link to="/documents">Documents</Link>
+      <Link to="/documents" style={{ marginRight: 24 }}>Documents</Link>
+      <Link to="/playground">Playground</Link>
     </div>
     <Routes>
       <Route path="/" element={<Home />} />
@@ -22,6 +24,7 @@ const App: React.FC = () => (
       <Route path="/logs" element={<Logs />} />
       <Route path="/users" element={<Users />} />
       <Route path="/documents" element={<Documents />} />
+      <Route path="/playground" element={<Playground />} />
     </Routes>
   </Router>
 );
