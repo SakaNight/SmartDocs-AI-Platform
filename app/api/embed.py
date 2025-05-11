@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, File, UploadFile, HTTPException
 from app.services.splitter import split_sentences
 from app.services.embedding import embed_texts
 from app.services.faiss_index import FaissService
+from app.services.pdf_utils import extract_text_from_pdf
 import json
 import os
+import io
 
 router = APIRouter()
 
@@ -22,8 +24,20 @@ def append_chunks(chunks):
         json.dump(all_chunks, f, ensure_ascii=False, indent=2)
 
 @router.post("/")
-def embed_doc(text: str = Body(..., embed=True)):
-    chunks = split_sentences(text)
+async def embed_doc(
+    text: str = Body(None, embed=True),
+    file: UploadFile = File(None)
+):
+    if file and file.filename.lower().endswith(".pdf"):
+        pdf_bytes = await file.read()
+        pdf_text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
+        if not pdf_text.strip():
+            raise HTTPException(status_code=400, detail="No text extracted from PDF.")
+        chunks = split_sentences(pdf_text)
+    elif text:
+        chunks = split_sentences(text)
+    else:
+        raise HTTPException(status_code=400, detail="No input text or PDF file provided.")
     vectors = embed_texts(chunks)
     faiss_service.add(vectors)
     append_chunks(chunks)
