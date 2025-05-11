@@ -19,11 +19,12 @@ def register(
     username: str = Body(...),
     email: str = Body(...),
     password: str = Body(...),
+    role: str = Body("user"),
     db: Session = Depends(get_db)
 ):
     if get_user_by_username(db, username):
         raise HTTPException(status_code=400, detail="Username already registered")
-    user = create_user(db, username, email, password)
+    user = create_user(db, username, email, password, role)
     return {"msg": "User registered", "user_id": user.id}
 
 @router.post("/login")

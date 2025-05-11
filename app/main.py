@@ -1,11 +1,25 @@
 from fastapi import FastAPI, Request, Response, status
 from app.api import embed, ask, auth, admin
-from app.db.database import SessionLocal
+from app.db.database import SessionLocal, Base, engine
 from app.services.log_service import log_api_call
 from app.core.deps import get_current_user
+from app.models import user, api_log
 import asyncio
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="SmartDocs AI API Platform")
+
+# 允许跨域
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 可根据需要指定前端地址
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 自动建表
+Base.metadata.create_all(bind=engine)
 
 app.include_router(embed.router, prefix="/embed", tags=["Embed"])
 app.include_router(ask.router, prefix="/ask", tags=["Ask"])
