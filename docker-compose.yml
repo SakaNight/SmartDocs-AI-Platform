@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: smartuser
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: smartdocs
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  fastapi:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: smartdocs
+      POSTGRES_USER: smartuser
+      POSTGRES_PASSWORD: yourpassword
+      SECRET_KEY: supersecretkey
+volumes:
+  pgdata: 

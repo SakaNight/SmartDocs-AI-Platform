@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+pgdata
+faiss.index
+chunks.json 
