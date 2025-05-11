@@ -11,7 +11,7 @@ from app.services.embedding import embed_texts
 from app.services.splitter import split_sentences
 from app.services.faiss_index import FaissService
 from app.services.pdf_utils import extract_text_from_pdf
-import io, os
+import io, os, json
 
 def get_db():
     db = SessionLocal()
