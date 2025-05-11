@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Card, Table, Typography, Button, Modal, Form, Input, Select, Space, message, Popconfirm } from 'antd';
+
+const { Title } = Typography;
+const { Option } = Select;
 
 interface User {
   id: number;
@@ -22,8 +26,8 @@ const Users: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showReset, setShowReset] = useState(false);
-  const [current, setCurrent] = useState<User>(emptyUser);
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'user' });
+  const [current, setCurrent] = useState<User | null>(null);
+  const [form] = Form.useForm();
   const [resetPwd, setResetPwd] = useState('');
   const [msg, setMsg] = useState('');
 
@@ -41,54 +45,56 @@ const Users: React.FC = () => {
   useEffect(() => { fetchUsers(); }, [q, page]);
 
   // Add User
-  function handleAdd() {
+  function handleAdd(values: any) {
     setMsg('');
     fetch('http://127.0.0.1:8000/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify(form)
+      body: JSON.stringify(values)
     })
       .then(res => res.json())
       .then(data => {
         if (data.user_id) {
-          setShowAdd(false); setForm({ username: '', email: '', password: '', role: 'user' }); fetchUsers();
+          setShowAdd(false); form.resetFields(); fetchUsers(); message.success('User added');
         } else { setMsg(data.detail || 'Failed to add user'); }
       });
   }
 
   // Edit User
-  function handleEdit() {
+  function handleEdit(values: any) {
+    if (!current) return;
     setMsg('');
     fetch(`http://127.0.0.1:8000/admin/users/${current.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ email: form.email, role: form.role })
+      body: JSON.stringify(values)
     })
       .then(res => res.json())
       .then(data => {
         if (data.msg === 'User updated') {
-          setShowEdit(false); fetchUsers();
+          setShowEdit(false); fetchUsers(); message.success('User updated');
         } else { setMsg(data.detail || 'Failed to update user'); }
       });
   }
 
   // Delete User
-  function handleDelete() {
+  function handleDelete(user: User) {
     setMsg('');
-    fetch(`http://127.0.0.1:8000/admin/users/${current.id}`, {
+    fetch(`http://127.0.0.1:8000/admin/users/${user.id}`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + token }
     })
       .then(res => res.json())
       .then(data => {
         if (data.msg === 'User deleted') {
-          setShowDelete(false); fetchUsers();
+          setShowDelete(false); fetchUsers(); message.success('User deleted');
         } else { setMsg(data.detail || 'Failed to delete user'); }
       });
   }
 
   // Reset Password
   function handleResetPwd() {
+    if (!current) return;
     setMsg('');
     fetch(`http://127.0.0.1:8000/admin/users/${current.id}/reset_password`, {
       method: 'POST',
@@ -98,128 +104,97 @@ const Users: React.FC = () => {
       .then(res => res.json())
       .then(data => {
         if (data.msg === 'Password reset') {
-          setShowReset(false); setResetPwd('');
+          setShowReset(false); setResetPwd(''); message.success('Password reset');
         } else { setMsg(data.detail || 'Failed to reset password'); }
       });
   }
 
-  return (
-    <div style={{ padding: 32 }}>
-      <h2>User Management</h2>
-      <div style={{ marginBottom: 16 }}>
-        <input
-          placeholder="Search username or email"
-          value={q}
-          onChange={e => { setQ(e.target.value); setPage(1); }}
-          style={{ marginRight: 16, padding: 4 }}
-        />
-        <button style={{ padding: '4px 12px' }} onClick={() => { setShowAdd(true); setForm({ username: '', email: '', password: '', role: 'user' }); setMsg(''); }}>Add User</button>
-      </div>
-      {loading ? <p>Loading...</p> : (
-        <table border={1} cellPadding={8} style={{ width: '100%', marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created At</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id}>
-                <td>{u.id}</td>
-                <td>{u.username}</td>
-                <td>{u.email}</td>
-                <td>{u.role}</td>
-                <td>{u.created_at}</td>
-                <td>
-                  <button style={{ marginRight: 8 }} onClick={() => { setCurrent(u); setForm({ ...u, password: '' }); setShowEdit(true); setMsg(''); }}>Edit</button>
-                  <button style={{ marginRight: 8 }} onClick={() => { setCurrent(u); setShowDelete(true); setMsg(''); }}>Delete</button>
-                  <button onClick={() => { setCurrent(u); setShowReset(true); setResetPwd(''); setMsg(''); }}>Reset Password</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <div style={{ marginTop: 16 }}>
-        <button disabled={page === 1} onClick={() => setPage(page-1)}>Prev</button>
-        <span style={{ margin: '0 12px' }}>Page {page}</span>
-        <button disabled={users.length < PAGE_SIZE} onClick={() => setPage(page+1)}>Next</button>
-      </div>
+  const columns = [
+    { title: 'ID', dataIndex: 'id', width: 80 },
+    { title: 'Username', dataIndex: 'username', width: 120 },
+    { title: 'Email', dataIndex: 'email', width: 180 },
+    { title: 'Role', dataIndex: 'role', width: 100 },
+    { title: 'Created At', dataIndex: 'created_at', width: 180 },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 220,
+      render: (_: any, user: User) => (
+        <Space>
+          <Button size="small" onClick={() => { setCurrent(user); setShowEdit(true); form.setFieldsValue(user); }}>Edit</Button>
+          <Popconfirm title="Delete this user?" onConfirm={() => handleDelete(user)} okText="Yes" cancelText="No">
+            <Button size="small" danger>Delete</Button>
+          </Popconfirm>
+          <Button size="small" onClick={() => { setCurrent(user); setShowReset(true); setResetPwd(''); }}>Reset Password</Button>
+        </Space>
+      )
+    }
+  ];
 
+  return (
+    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none' }}>
+      <Card style={{ width: '100%', maxWidth: 1100, borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }} bodyStyle={{ padding: 32 }}>
+        <Title level={3} style={{ textAlign: 'center', marginBottom: 32 }}>User Management</Title>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+          <Input.Search
+            placeholder="Search username or email"
+            value={q}
+            onChange={e => { setQ(e.target.value); setPage(1); }}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary" onClick={() => { setShowAdd(true); form.resetFields(); }}>Add User</Button>
+        </div>
+        <Table
+          columns={columns}
+          dataSource={users}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: PAGE_SIZE, current: page, onChange: setPage }}
+          bordered
+          size="middle"
+        />
+      </Card>
       {/* Add User Modal */}
-      {showAdd && (
-        <div style={modalStyle}>
-          <div style={modalBoxStyle}>
-            <h3>Add User</h3>
-            <input placeholder="Username" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} style={{ marginBottom: 8 }} />
-            <input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={{ marginBottom: 8 }} />
-            <input placeholder="Password" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={{ marginBottom: 8 }} />
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ marginBottom: 8 }}>
-              <option value="user">user</option>
-              <option value="admin">admin</option>
-            </select>
-            <div style={{ color: 'red', minHeight: 20 }}>{msg}</div>
-            <button onClick={handleAdd} style={{ marginRight: 8 }}>Submit</button>
-            <button onClick={() => setShowAdd(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showAdd}
+        title="Add User"
+        onCancel={() => setShowAdd(false)}
+        onOk={() => form.submit()}
+        okText="Submit"
+      >
+        <Form form={form} layout="vertical" onFinish={handleAdd}>
+          <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
+          <Form.Item name="password" label="Password" rules={[{ required: true }]}> <Input.Password /> </Form.Item>
+          <Form.Item name="role" label="Role" initialValue="user" rules={[{ required: true }]}> <Select><Option value="user">user</Option><Option value="admin">admin</Option></Select> </Form.Item>
+        </Form>
+      </Modal>
       {/* Edit User Modal */}
-      {showEdit && (
-        <div style={modalStyle}>
-          <div style={modalBoxStyle}>
-            <h3>Edit User</h3>
-            <div>Username: {current.username}</div>
-            <input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={{ marginBottom: 8 }} />
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ marginBottom: 8 }}>
-              <option value="user">user</option>
-              <option value="admin">admin</option>
-            </select>
-            <div style={{ color: 'red', minHeight: 20 }}>{msg}</div>
-            <button onClick={handleEdit} style={{ marginRight: 8 }}>Submit</button>
-            <button onClick={() => setShowEdit(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
-      {/* Delete User Modal */}
-      {showDelete && (
-        <div style={modalStyle}>
-          <div style={modalBoxStyle}>
-            <h3>Delete User</h3>
-            <div>Are you sure to delete user "{current.username}"?</div>
-            <div style={{ color: 'red', minHeight: 20 }}>{msg}</div>
-            <button onClick={handleDelete} style={{ marginRight: 8 }}>Confirm</button>
-            <button onClick={() => setShowDelete(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showEdit}
+        title="Edit User"
+        onCancel={() => setShowEdit(false)}
+        onOk={() => form.submit()}
+        okText="Submit"
+      >
+        <Form form={form} layout="vertical" onFinish={handleEdit}>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
+          <Form.Item name="role" label="Role" rules={[{ required: true }]}> <Select><Option value="user">user</Option><Option value="admin">admin</Option></Select> </Form.Item>
+        </Form>
+      </Modal>
       {/* Reset Password Modal */}
-      {showReset && (
-        <div style={modalStyle}>
-          <div style={modalBoxStyle}>
-            <h3>Reset Password</h3>
-            <div>Username: {current.username}</div>
-            <input placeholder="New Password" type="password" value={resetPwd} onChange={e => setResetPwd(e.target.value)} style={{ marginBottom: 8 }} />
-            <div style={{ color: 'red', minHeight: 20 }}>{msg}</div>
-            <button onClick={handleResetPwd} style={{ marginRight: 8 }}>Submit</button>
-            <button onClick={() => setShowReset(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showReset}
+        title="Reset Password"
+        onCancel={() => setShowReset(false)}
+        onOk={handleResetPwd}
+        okText="Submit"
+      >
+        <Input.Password placeholder="New Password" value={resetPwd} onChange={e => setResetPwd(e.target.value)} />
+      </Modal>
     </div>
   );
-};
-
-const modalStyle: React.CSSProperties = {
-  position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-};
-const modalBoxStyle: React.CSSProperties = {
-  background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
 };
 
 export default Users; 

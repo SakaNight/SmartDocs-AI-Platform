@@ -1,4 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Card, Table, Typography, Button, Modal, Upload, message, Space, Popconfirm } from 'antd';
+import { UploadOutlined, FileSearchOutlined, DeleteOutlined, RedoOutlined } from '@ant-design/icons';
+
+const { Title } = Typography;
 
 interface Document {
   id: number;
@@ -17,7 +21,7 @@ const Documents: React.FC = () => {
   const [chunks, setChunks] = useState<string[]>([]);
   const [current, setCurrent] = useState<Document | null>(null);
   const [msg, setMsg] = useState('');
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   function fetchDocs() {
     setLoading(true);
@@ -34,14 +38,13 @@ const Documents: React.FC = () => {
   useEffect(() => { fetchDocs(); }, []);
 
   function handleDelete(doc: Document) {
-    if (!window.confirm(`Delete document "${doc.filename}"?`)) return;
     fetch(`http://127.0.0.1:8000/admin/docs/${doc.id}`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + token }
     })
       .then(res => res.json())
       .then(data => {
-        if (data.msg === 'Document deleted') fetchDocs();
+        if (data.msg === 'Document deleted') { fetchDocs(); message.success('Document deleted'); }
         else setMsg(data.detail || 'Failed to delete');
       });
   }
@@ -57,36 +60,32 @@ const Documents: React.FC = () => {
   }
 
   function handleReembed(doc: Document) {
-    if (!window.confirm(`Re-embed document "${doc.filename}"?`)) return;
     fetch(`http://127.0.0.1:8000/admin/docs/${doc.id}/reembed`, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token }
     })
       .then(res => res.json())
       .then(data => {
-        if (data.msg === 'Re-embedded') fetchDocs();
+        if (data.msg === 'Re-embedded') { fetchDocs(); message.success('Re-embedded'); }
         else setMsg(data.detail || 'Failed to re-embed');
       });
   }
 
   function handleDeleteEmbedding(doc: Document) {
-    if (!window.confirm(`Delete embedding for document "${doc.filename}"?`)) return;
     fetch(`http://127.0.0.1:8000/admin/docs/${doc.id}/embedding`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + token }
     })
       .then(res => res.json())
       .then(data => {
-        if (data.msg) fetchDocs();
+        if (data.msg) { fetchDocs(); message.success('Embedding deleted'); }
         else setMsg(data.detail || 'Failed to delete embedding');
       });
   }
 
-  function handleUpload(e: React.FormEvent) {
-    e.preventDefault();
+  function handleUpload({ file }: any) {
+    setUploading(true);
     setMsg('');
-    const file = fileInput.current?.files?.[0];
-    if (!file) return setMsg('Please select a file');
     const formData = new FormData();
     formData.append('file', file);
     fetch('http://127.0.0.1:8000/embed/', {
@@ -96,75 +95,78 @@ const Documents: React.FC = () => {
     })
       .then(res => res.json())
       .then(data => {
+        setUploading(false);
         if (data.doc_id) {
           fetchDocs();
-          if (fileInput.current) fileInput.current.value = '';
+          message.success('Upload successful');
         } else setMsg(data.detail || 'Upload failed');
       });
   }
 
+  const columns = [
+    { title: 'ID', dataIndex: 'id', width: 80 },
+    { title: 'Filename', dataIndex: 'filename', width: 220 },
+    { title: 'Upload Time', dataIndex: 'upload_time', width: 180 },
+    { title: 'Chunks', dataIndex: 'chunk_count', width: 100 },
+    { title: 'Status', dataIndex: 'status', width: 120 },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 320,
+      render: (_: any, doc: Document) => (
+        <Space>
+          <Button icon={<FileSearchOutlined />} size="small" onClick={() => handleShowChunks(doc)}>View Chunks</Button>
+          <Button icon={<RedoOutlined />} size="small" onClick={() => handleReembed(doc)}>Re-embed</Button>
+          <Button icon={<DeleteOutlined />} size="small" onClick={() => handleDeleteEmbedding(doc)}>Delete Embedding</Button>
+          <Popconfirm title="Delete this document?" onConfirm={() => handleDelete(doc)} okText="Yes" cancelText="No">
+            <Button size="small" danger>Delete</Button>
+          </Popconfirm>
+        </Space>
+      )
+    }
+  ];
+
   return (
-    <div style={{ padding: 32 }}>
-      <h2>Document Management</h2>
-      <form onSubmit={handleUpload} style={{ marginBottom: 16 }}>
-        <input type="file" ref={fileInput} accept=".pdf,.txt" style={{ marginRight: 12 }} />
-        <button type="submit">Upload</button>
-        <span style={{ color: 'red', marginLeft: 16 }}>{msg}</span>
-      </form>
-      {loading ? <p>Loading...</p> : (
-        <table border={1} cellPadding={8} style={{ width: '100%', marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Filename</th>
-              <th>Upload Time</th>
-              <th>Chunks</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {docs.map(doc => (
-              <tr key={doc.id}>
-                <td>{doc.id}</td>
-                <td>{doc.filename}</td>
-                <td>{doc.upload_time}</td>
-                <td>{doc.chunk_count}</td>
-                <td>{doc.status}</td>
-                <td>
-                  <button style={{ marginRight: 8 }} onClick={() => handleShowChunks(doc)}>View Chunks</button>
-                  <button style={{ marginRight: 8 }} onClick={() => handleReembed(doc)}>Re-embed</button>
-                  <button style={{ marginRight: 8 }} onClick={() => handleDeleteEmbedding(doc)}>Delete Embedding</button>
-                  <button onClick={() => handleDelete(doc)}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {/* Chunks Modal */}
-      {showChunks && (
-        <div style={modalStyle}>
-          <div style={modalBoxStyle}>
-            <h3>Chunks of {current?.filename}</h3>
-            <div style={{ maxHeight: 300, overflow: 'auto', marginBottom: 12 }}>
-              <ol>
-                {chunks.map((c, i) => <li key={i} style={{ marginBottom: 8 }}>{c}</li>)}
-              </ol>
-            </div>
-            <button onClick={() => setShowChunks(false)}>Close</button>
-          </div>
+    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none' }}>
+      <Card style={{ width: '100%', maxWidth: 1200, borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }} bodyStyle={{ padding: 32 }}>
+        <Title level={3} style={{ textAlign: 'center', marginBottom: 32 }}>Document Management</Title>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+          <Upload
+            customRequest={handleUpload}
+            showUploadList={false}
+            accept=".pdf,.txt"
+            disabled={uploading}
+          >
+            <Button icon={<UploadOutlined />} loading={uploading} type="primary">Upload</Button>
+          </Upload>
+          <span style={{ color: 'red' }}>{msg}</span>
         </div>
-      )}
+        <Table
+          columns={columns}
+          dataSource={docs}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          bordered
+          size="middle"
+        />
+      </Card>
+      {/* Chunks Modal */}
+      <Modal
+        open={showChunks}
+        title={`Chunks of ${current?.filename}`}
+        onCancel={() => setShowChunks(false)}
+        footer={<Button onClick={() => setShowChunks(false)}>Close</Button>}
+        width={700}
+      >
+        <div style={{ maxHeight: 400, overflow: 'auto', marginBottom: 12 }}>
+          <ol>
+            {chunks.map((c, i) => <li key={i} style={{ marginBottom: 8 }}>{c}</li>)}
+          </ol>
+        </div>
+      </Modal>
     </div>
   );
-};
-
-const modalStyle: React.CSSProperties = {
-  position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-};
-const modalBoxStyle: React.CSSProperties = {
-  background: '#fff', padding: 24, borderRadius: 8, minWidth: 320, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
 };
 
 export default Documents; 
