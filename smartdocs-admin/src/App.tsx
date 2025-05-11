@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Stats from './pages/Stats';
 import Logs from './pages/Logs';
 import Users from './pages/Users';
+import Documents from './pages/Documents';
 import './App.css';
 
 const App: React.FC = () => (
@@ -12,13 +13,15 @@ const App: React.FC = () => (
       <Link to="/" style={{ marginRight: 24 }}>Home</Link>
       <Link to="/stats" style={{ marginRight: 24 }}>Stats</Link>
       <Link to="/logs" style={{ marginRight: 24 }}>Logs</Link>
-      <Link to="/users">Users</Link>
+      <Link to="/users" style={{ marginRight: 24 }}>Users</Link>
+      <Link to="/documents">Documents</Link>
     </div>
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/stats" element={<Stats />} />
       <Route path="/logs" element={<Logs />} />
       <Route path="/users" element={<Users />} />
+      <Route path="/documents" element={<Documents />} />
     </Routes>
   </Router>
 );

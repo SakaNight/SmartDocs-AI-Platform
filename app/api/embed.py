@@ -37,10 +37,10 @@ async def embed_doc(
             pdf_text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
             if not pdf_text.strip():
                 raise HTTPException(status_code=400, detail="No text extracted from PDF.")
-            chunks = split_sentences(pdf_text)
+            chunks = [c for c in split_sentences(pdf_text) if c.strip()]
             filename = file.filename
         elif text:
-            chunks = split_sentences(text)
+            chunks = [c for c in split_sentences(text) if c.strip()]
             filename = "text_input.txt"
         else:
             raise HTTPException(status_code=400, detail="No input text or PDF file provided.")
