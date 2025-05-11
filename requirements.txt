@@ -11,4 +11,5 @@ sentence-transformers
 faiss-cpu
 python-dotenv
 sqlalchemy
-psycopg2-binary 
+psycopg2-binary
+accelerate 

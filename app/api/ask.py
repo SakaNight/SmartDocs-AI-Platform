@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Body
 from app.services.embedding import embed_texts
 from app.services.faiss_index import FaissService
+from app.services.llm_rag import rag_generate
 import json
 import os
 from typing import List, Dict, Any
@@ -22,14 +23,17 @@ def ask(
     query: str = Body(..., embed=True),
     history: List[Dict[str, Any]] = Body(default=[], embed=True)
 ):
-    # 拼接历史对话内容，可用于后续上下文增强
     context = "\n".join([f"{h['role']}: {h['content']}" for h in history])
     full_query = context + "\nuser: " + query if context else query
     vector = embed_texts([full_query])[0]
     idxs, scores = faiss_service.search(vector, top_k=3)
     chunks = load_chunks()
-    results = []
+    retrieved = []
     for idx, score in zip(idxs, scores):
         if 0 <= idx < len(chunks):
-            results.append({"text": chunks[idx], "score": float(score)})
-    return {"results": results} 
+            retrieved.append(chunks[idx])
+    answer = rag_generate(query, retrieved)
+    return {
+        "answer": answer,
+        "retrieved": retrieved
+    } 
