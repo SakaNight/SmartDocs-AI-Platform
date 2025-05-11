@@ -56,6 +56,32 @@ const Documents: React.FC = () => {
       .then(data => setChunks(data.chunks || []));
   }
 
+  function handleReembed(doc: Document) {
+    if (!window.confirm(`Re-embed document "${doc.filename}"?`)) return;
+    fetch(`http://127.0.0.1:8000/admin/docs/${doc.id}/reembed`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.msg === 'Re-embedded') fetchDocs();
+        else setMsg(data.detail || 'Failed to re-embed');
+      });
+  }
+
+  function handleDeleteEmbedding(doc: Document) {
+    if (!window.confirm(`Delete embedding for document "${doc.filename}"?`)) return;
+    fetch(`http://127.0.0.1:8000/admin/docs/${doc.id}/embedding`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.msg) fetchDocs();
+        else setMsg(data.detail || 'Failed to delete embedding');
+      });
+  }
+
   function handleUpload(e: React.FormEvent) {
     e.preventDefault();
     setMsg('');
@@ -107,6 +133,8 @@ const Documents: React.FC = () => {
                 <td>{doc.status}</td>
                 <td>
                   <button style={{ marginRight: 8 }} onClick={() => handleShowChunks(doc)}>View Chunks</button>
+                  <button style={{ marginRight: 8 }} onClick={() => handleReembed(doc)}>Re-embed</button>
+                  <button style={{ marginRight: 8 }} onClick={() => handleDeleteEmbedding(doc)}>Delete Embedding</button>
                   <button onClick={() => handleDelete(doc)}>Delete</button>
                 </td>
               </tr>
