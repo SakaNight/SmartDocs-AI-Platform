@@ -82,4 +82,4 @@ jobs:
           
       - name: Update ECS service
         run: |
-          aws ecs update-service --cluster smartdocs-cluster --service smartdocs-service --force-new-deployment 
+          aws ecs update-service --cluster smartdocs-cluster --service smartdocs-taskdef-service-ilhgw9xf --force-new-deployment 
