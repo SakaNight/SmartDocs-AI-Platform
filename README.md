@@ -4,6 +4,34 @@ A modern, production-ready Retrieval-Augmented Generation (RAG) document Q&A pla
 
 ---
 
+## 📸 Screenshots
+
+### 🔹 Welcome Page
+![Landing](screenshots/landing.jpg)
+
+---
+
+### 🔹 RAG Playground
+![RAG Playground](screenshots/playground.jpg)
+
+---
+
+### 🔹 Document Management
+![Document Management](screenshots/doc-management.jpg)
+
+---
+
+### 🔹 Admin Panel – Platform Stats & API Logs
+![Stats](screenshots/stats.jpg)
+![Stats](screenshots/api-log.jpg)
+
+---
+
+### 🔹 Admin Panel – User Management
+![Users](screenshots/user-management.jpg)
+
+---
+
 ## 🚀 Features
 
 - ✅ **Document Embedding & RAG Q&A** (HuggingFace Transformers, FAISS)
