@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 优先使用 DATABASE_URL 环境变量，否则回退到分解式配置
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
