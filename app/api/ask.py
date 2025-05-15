@@ -8,7 +8,6 @@ from typing import List, Dict, Any
 
 router = APIRouter()
 
-# 假设与 /embed 用同一个 faiss.index，维度为 384
 faiss_service = FaissService(dim=384)
 CHUNKS_PATH = "chunks.json"
 
