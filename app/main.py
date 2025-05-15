@@ -9,16 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="SmartDocs AI API Platform")
 
-# 允许跨域
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 可根据需要指定前端地址
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 自动建表
 Base.metadata.create_all(bind=engine)
 
 app.include_router(embed.router, prefix="/embed", tags=["Embed"])
@@ -36,7 +34,7 @@ async def log_requests(request: Request, call_next):
     try:
         db = SessionLocal()
         username = "anonymous"
-        # 尝试获取当前用户
+
         auth = request.headers.get("authorization")
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
