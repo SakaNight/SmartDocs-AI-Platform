@@ -37,7 +37,6 @@ def stats(db: Session = Depends(get_db), user=Depends(require_role("admin"))):
         "recent_24h_active_users": active_users
     }
 
-# 日志查询接口
 @router.get("/logs")
 def get_logs(skip: int = 0, limit: int = 20, db: Session = Depends(get_db), user=Depends(require_role("admin"))):
     logs = db.query(APILog).order_by(APILog.timestamp.desc()).offset(skip).limit(limit).all()
@@ -148,14 +147,14 @@ def get_doc_chunks(doc_id: int, db: Session = Depends(get_db), user=Depends(requ
     d = db.query(Document).filter(Document.id == doc_id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Document not found")
-    # 这里假设chunks信息存储在chunks.json，按顺序分配给文档
+    
     import json, os
     CHUNKS_PATH = "chunks.json"
     if not os.path.exists(CHUNKS_PATH):
         return {"chunks": []}
     with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
         all_chunks = json.load(f)
-    # 简单实现：假设每个文档的chunks是连续分配的
+    
     start = 0
     for doc in db.query(Document).order_by(Document.id):
         if doc.id == doc_id:
@@ -169,8 +168,7 @@ def reembed_doc(doc_id: int, db: Session = Depends(get_db), user=Depends(require
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    # 重新分片和嵌入
-    # 假设原始文件还在本地 upload 文件夹
+    
     upload_path = os.path.join("uploads", doc.filename)
     if not os.path.exists(upload_path):
         raise HTTPException(status_code=404, detail="Original file not found")
@@ -182,10 +180,10 @@ def reembed_doc(doc_id: int, db: Session = Depends(get_db), user=Depends(require
             text = f.read().decode("utf-8")
             chunks = [c for c in split_sentences(text) if c.strip()]
     vectors = embed_texts(chunks)
-    # 重新写入FAISS和chunks.json（此处简单实现，实际应支持增量/替换）
+    
     faiss_service = FaissService(dim=len(vectors[0]))
     faiss_service.add(vectors)
-    # 追加到chunks.json
+    
     CHUNKS_PATH = "chunks.json"
     if os.path.exists(CHUNKS_PATH):
         with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
@@ -205,7 +203,7 @@ def delete_doc_embedding(doc_id: int, db: Session = Depends(get_db), user=Depend
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    # 这里只做标记，不实际删除FAISS和chunks（如需彻底删除需实现向量和分片的物理删除）
+    
     doc.status = "embedding_deleted"
     db.commit()
     return {"msg": "Embedding deleted (logical)"} 
