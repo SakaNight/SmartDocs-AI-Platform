@@ -11,7 +11,6 @@ import io
 
 router = APIRouter()
 
-# 初始化 FAISS 服务（假设 embedding 维度为 384）
 faiss_service = FaissService(dim=384)
 CHUNKS_PATH = "chunks.json"
 
@@ -47,7 +46,7 @@ async def embed_doc(
         vectors = embed_texts(chunks)
         faiss_service.add(vectors)
         append_chunks(chunks)
-        # 写入文档元数据
+        
         doc = Document(filename=filename, chunk_count=len(chunks), status="embedded")
         db.add(doc)
         db.commit()
