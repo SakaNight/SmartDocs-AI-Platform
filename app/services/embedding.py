@@ -2,7 +2,6 @@ from sentence_transformers import SentenceTransformer
 from typing import List
 import threading
 
-# 线程安全的全局模型加载
 _model = None
 _model_lock = threading.Lock()
 
