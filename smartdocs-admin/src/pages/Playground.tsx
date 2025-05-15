@@ -33,7 +33,7 @@ const Playground: React.FC = () => {
     fetch('http://127.0.0.1:8000/ask/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ query: question }) // 如需限定文档可扩展
+      body: JSON.stringify({ query: question })
     })
       .then(res => res.json())
       .then(data => {
@@ -55,7 +55,6 @@ const Playground: React.FC = () => {
           rows={3}
           style={{ width: '100%', marginBottom: 12 }}
         />
-        {/* 可选文档下拉框，暂不生效 */}
         {/* <select value={docId} onChange={e => setDocId(Number(e.target.value))} style={{ marginBottom: 12 }}>
           <option value="">All Documents</option>
           {docs.map(doc => <option key={doc.id} value={doc.id}>{doc.filename}</option>)}
