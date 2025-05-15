@@ -3,7 +3,6 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import os
 
-# 密码加密
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
