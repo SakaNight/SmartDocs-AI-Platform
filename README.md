@@ -1,55 +1,55 @@
 # SmartDocs AI Platform
 
-A modern, production-ready Retrieval-Augmented Generation (RAG) document Q&A platform with FastAPI backend, React + Ant Design frontend, HuggingFace Transformers, FAISS, PostgreSQL, JWT authentication, RBAC, logging, and full Docker/AWS deployment support.
+A Retrieval-Augmented Generation (RAG) document Q&A platform with FastAPI backend, React + Ant Design frontend, HuggingFace Transformers, FAISS, PostgreSQL, JWT authentication, RBAC, logging, and Docker/AWS deployment support.
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-### 🔹 Welcome Page
+### Welcome Page
 ![Landing](screenshots/landing.jpg)
 
 ---
 
-### 🔹 RAG Playground
+### RAG Playground
 ![RAG Playground](screenshots/playground.jpg)
 
 ---
 
-### 🔹 Document Management
+### Document Management
 ![Document Management](screenshots/doc-management.jpg)
 
 ---
 
-### 🔹 Admin Panel – Platform Stats & API Logs
+### Admin Panel – Platform Stats & API Logs
 ![Stats](screenshots/stats.jpg)
 ![Stats](screenshots/api-log.jpg)
 
 ---
 
-### 🔹 Admin Panel – User Management
+### Admin Panel – User Management
 ![Users](screenshots/user-management.jpg)
 
 ---
 
-## 🚀 Features
+## Features
 
-- ✅ **Document Embedding & RAG Q&A** (HuggingFace Transformers, FAISS)
-- ✅ **PDF Upload & Text Extraction**
-- ✅ **Multi-turn Q&A** with context retrieval
-- ✅ **User Authentication (JWT)**
-- ✅ **Role-Based Access Control (RBAC: user/admin)**
-- ✅ **API Request Logging & Admin Dashboard**
-- ✅ **Statistics: User/Request/Active Users**
-- ✅ **PostgreSQL Database (SQLAlchemy ORM)**
-- ✅ **Modern React + Ant Design Frontend**
-- ✅ **Docker & Docker Compose Support**
-- ✅ **AWS ECS Fargate + RDS Production Deployment**
-- ✅ **CI/CD with GitHub Actions**
+- Document Embedding & RAG Q&A (HuggingFace Transformers, FAISS)
+- PDF Upload & Text Extraction
+- Q&A with context retrieval
+- User Authentication (JWT)
+- Role-Based Access Control (RBAC: user/admin)
+- API Request Logging & Admin Dashboard
+- Statistics: User/Request/Active Users
+- PostgreSQL Database (SQLAlchemy ORM)
+- React + Ant Design Frontend
+- Docker & Docker Compose Support
+- AWS ECS Fargate + RDS Production Deployment
+- CI/CD with GitHub Actions
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 SmartDocs-AI-Platform/
@@ -74,53 +74,53 @@ SmartDocs-AI-Platform/
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
-- **Backend**: FastAPI, SQLAlchemy, HuggingFace Transformers, FAISS, PyPDF, JWT, RBAC
-- **Frontend**: React, Ant Design, Vite, TypeScript
-- **Database**: PostgreSQL (local & AWS RDS)
-- **Deployment**: Docker, Docker Compose, AWS ECS Fargate, AWS RDS, Nginx (optional)
-- **CI/CD**: GitHub Actions (test, build, push, deploy)
+- Backend: FastAPI, SQLAlchemy, HuggingFace Transformers, FAISS, PyPDF, JWT, RBAC
+- Frontend: React, Ant Design, Vite, TypeScript
+- Database: PostgreSQL (local & AWS RDS)
+- Deployment: Docker, Docker Compose, AWS ECS Fargate, AWS RDS, Nginx
+- CI/CD: GitHub Actions (test, build, push, deploy)
 
 ---
 
-## 🏗️ Local Development
+## Local Development
 
-1. **Clone the repo**
+1. Clone the repo
    ```bash
    git clone https://github.com/SakaNight/SmartDocs-AI-Platform.git
    cd SmartDocs-AI-Platform
    ```
-2. **Backend**
+2. Backend
    ```bash
    pip install -r requirements.txt
    uvicorn app.main:app --reload
    ```
-3. **Frontend**
+3. Frontend
    ```bash
    cd smartdocs-admin
    npm install
    npm run dev
    ```
-4. **Or use Docker Compose**
+4. Or use Docker Compose
    ```bash
    docker-compose up --build
    ```
 
 ---
 
-## ☁️ Production Deployment (AWS)
+## Production Deployment (AWS)
 
-- **Backend**: Docker image deployed to AWS ECS Fargate
-- **Database**: AWS RDS PostgreSQL
-- **Frontend**: (Optional) Deploy React app to S3, EC2, or Vercel/Netlify
-- **CI/CD**: GitHub Actions auto-builds, pushes, and deploys on every push to main
+- Backend: Docker image deployed to AWS ECS Fargate
+- Database: AWS RDS PostgreSQL
+- Frontend: (Optional) Deploy React app to S3, EC2
+- CI/CD: GitHub Actions auto-builds, pushes, and deploys on every push to main
 
 ---
 
-## 🔗 API Endpoints
+## API Endpoints
 
-- `/embed/`   - Upload & embed documents (PDF/text)
+- `/embed/`   - Upload & embed documents (PDF)
 - `/ask/`     - Ask questions (RAG Q&A)
 - `/auth/register` - User registration
 - `/auth/login`    - User login (JWT)
@@ -133,20 +133,14 @@ SmartDocs-AI-Platform/
 
 ---
 
-## 🛠️ CI/CD Pipeline
+## CI/CD Pipeline
 
-- **Test**: Linting & unit tests
-- **Build & Push**: Docker image to GitHub Container Registry
-- **Deploy**: Update AWS ECS service (zero-downtime)
-
----
-
-## 🤝 Contributing
-
-Pull requests and issues are welcome! Please open an issue to discuss your idea or bug before submitting a PR.
+- Test: Linting & unit tests
+- Build & Push: Docker image to GitHub Container Registry
+- Deploy: Update AWS ECS service
 
 ---
 
-## 📄 License
+## License
 
 MIT © 2025 [Aries Chen]
