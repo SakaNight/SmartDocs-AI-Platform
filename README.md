@@ -113,7 +113,7 @@ SmartDocs-AI-Platform/
 
 - Backend: Docker image deployed to AWS ECS Fargate
 - Database: AWS RDS PostgreSQL
-- Frontend: (Optional) Deploy React app to S3, EC2
+- Frontend: Deploy React app to S3
 - CI/CD: GitHub Actions auto-builds, pushes, and deploys on every push to main
 
 ---
