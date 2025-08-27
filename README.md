@@ -77,44 +77,52 @@ SmartDocs-AI-Platform/
 ## Tech Stack
 
 - Backend: FastAPI, SQLAlchemy, HuggingFace Transformers, FAISS, PyPDF, JWT, RBAC
-- Frontend: React, Ant Design, Vite, TypeScript
+- Frontend: React (Vite, Ant Design, TypeScript), Nginx static hosting
 - Database: PostgreSQL (local & AWS RDS)
-- Deployment: Docker, Docker Compose, AWS ECS Fargate, AWS RDS, Nginx
-- CI/CD: GitHub Actions (test, build, push, deploy)
+- Deployment: Docker, Docker Compose (local), AWS ECS Fargate (backend), AWS RDS (database), AWS S3 + ALB (frontend)
+- CI/CD: GitHub Actions (lint, test, build, push, deploy)
 
 ---
 
 ## Local Development
 
-1. Clone the repo
    ```bash
-   git clone https://github.com/SakaNight/SmartDocs-AI-Platform.git
-   cd SmartDocs-AI-Platform
-   ```
-2. Backend
-   ```bash
-   pip install -r requirements.txt
-   uvicorn app.main:app --reload
-   ```
-3. Frontend
-   ```bash
-   cd smartdocs-admin
-   npm install
-   npm run dev
-   ```
-4. Or use Docker Compose
-   ```bash
-   docker-compose up --build
+   # Start backend + DB
+   docker-compose up -d
+   
+   # Backend runs on http://localhost:8000
+   # Frontend runs on http://localhost:5173 (Vite dev server)
+   
+   # Environment variables (smartdocs-admin/.env)
+   VITE_API_BASE_URL=http://localhost:8000
    ```
 
 ---
 
 ## Production Deployment (AWS)
 
-- Backend: Docker image deployed to AWS ECS Fargate
-- Database: AWS RDS PostgreSQL
-- Frontend: Deploy React app to S3
-- CI/CD: GitHub Actions auto-builds, pushes, and deploys on every push to main
+### Backend
+- Docker image built from Dockerfile
+- Deployed to AWS ECS Fargate, fronted by an Application Load Balancer (ALB)
+- Logs aggregated via CloudWatch
+
+### Database
+- AWS RDS PostgreSQL
+- Credentials and DB endpoint provided via ECS Task Definition (env vars from Secrets Manager/SSM)
+
+### Frontend
+- React/Vite app built via GitHub Actions
+- Served as static files with Nginx
+- Synced to S3 bucket and optionally behind CloudFront for HTTPS/CDN
+
+### CI/CD (GitHub Actions)
+- On each push to main:
+	1.	Run flake8 linting and pytest
+	2.	Build Docker image → push to GitHub Container Registry
+	3.	Update ECS service with new image (zero-downtime deploy)
+	4.	Build frontend (inject VITE_API_BASE_URL via .env.production)
+	5.	Sync static assets to S3
+	6.	(Optional) Invalidate CloudFront cache
 
 ---
 
@@ -133,11 +141,27 @@ SmartDocs-AI-Platform/
 
 ---
 
-## CI/CD Pipeline
+## Environment Variables
 
-- Test: Linting & unit tests
-- Build & Push: Docker image to GitHub Container Registry
-- Deploy: Update AWS ECS service
+Backend (.env / ECS Task Definition):
+```env
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=smartdocs
+POSTGRES_USER=smartuser
+POSTGRES_PASSWORD=yourpassword
+SECRET_KEY=supersecretkey
+````
+
+Frontend (smartdocs-admin/.env):
+```env
+VITE_API_BASE_URL=http://localhost:8000
+````
+
+Frontend (production, injected in CI/CD):
+```env
+VITE_API_BASE_URL=https://<your-alb-dns>
+````
 
 ---
 
