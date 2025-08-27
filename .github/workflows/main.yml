@@ -49,17 +49,20 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_digest: ${{ steps.meta.outputs.digest }}
+      image_tags: ${{ steps.meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v3
 
-      - name: Log in to the Container registry
+      - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata (tags, labels, digest)
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -72,12 +75,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  deploy:
+  deploy-backend:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    env:
+      IMAGE_URI_WITH_DIGEST: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.image_digest }}
+      ECS_CLUSTER: smartdocs-cluster
+      ECS_SERVICE: smartdocs-taskdef-service-ilhgw9xf
+      API_BASE_URL: ${{ secrets.API_BASE_URL }}
     steps:
+      - uses: actions/checkout@v3
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -85,9 +97,64 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Update ECS service
+      - name: Render task definition with image digest
+        run: |
+          sed "s|IMAGE_URI|${IMAGE_URI_WITH_DIGEST}|g" ecs-taskdef.json > taskdef.rendered.json
+          cat taskdef.rendered.json
+
+      - name: Register new task definition revision
+        run: |
+          aws ecs register-task-definition --cli-input-json file://taskdef.rendered.json
+
+      - name: Update service to latest task definition
         run: |
           aws ecs update-service \
-            --cluster smartdocs-cluster \
-            --service smartdocs-taskdef-service-ilhgw9xf \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE}" \
             --force-new-deployment
+
+      - name: Wait until service is stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE}"
+
+      - name: Post-deploy smoke test (/healthz)
+        run: |
+          curl -fsS "${API_BASE_URL}/healthz"
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_FRONTEND == 'true'
+    env:
+      FRONTEND_DIR: smartdocs-admin        
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ secrets.API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Install & build FE (static export)
+        working-directory: smartdocs-admin
+        run: |
+          npm ci || npm i
+          echo "NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}" > .env.production
+          npm run build
+          npx next export -o out
+
+      - name: Sync to S3
+        working-directory: smartdocs-admin
+        run: |
+          aws s3 sync ./out "s3://${S3_BUCKET}" --delete
