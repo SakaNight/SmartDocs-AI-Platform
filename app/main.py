@@ -9,13 +9,24 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="SmartDocs AI API Platform")
 
+origins = [
+    "http://localhost:5173",
+    "https://<your-alb-dns>",
+    "https://<your-s3-bucket>.s3-website.us-east-2.amazonaws.com",
+    "https://<your-custom-domain>"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 Base.metadata.create_all(bind=engine)
 
