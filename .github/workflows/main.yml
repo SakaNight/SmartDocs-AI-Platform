@@ -123,6 +123,47 @@ jobs:
         run: |
           curl -fsS "${API_BASE_URL}/healthz"
 
+  run-db-migration:
+  needs: deploy-backend
+  runs-on: ubuntu-latest
+  if: github.ref == 'refs/heads/main'
+  env:
+    ECS_CLUSTER: smartdocs-cluster
+    TASK_DEF: smartdocs-taskdef          
+    SUBNETS: subnet-aaaa,subnet-bbbb     
+    SEC_GROUPS: sg-xxxxxxxx              
+  steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+
+    - name: Run alembic migration as one-off task
+      run: |
+        TASK_ARN=$(aws ecs run-task \
+          --cluster "$ECS_CLUSTER" \
+          --launch-type FARGATE \
+          --task-definition "$TASK_DEF" \
+          --count 1 \
+          --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SEC_GROUPS],assignPublicIp=DISABLED}" \
+          --overrides '{
+            "containerOverrides": [{
+              "name": "smartdocs-api",
+              "command": ["alembic","upgrade","head"]
+            }]
+          }' \
+          --query 'tasks[0].taskArn' --output text)
+        echo "Started task: $TASK_ARN"
+
+        aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+        EXIT_CODE=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" \
+          --query 'tasks[0].containers[0].exitCode' --output text)
+        echo "Migration exit code: $EXIT_CODE"
+        test "$EXIT_CODE" = "0"
   deploy-frontend:
     needs: test
     runs-on: ubuntu-latest
